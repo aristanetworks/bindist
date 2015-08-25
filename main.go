@@ -14,11 +14,13 @@ import (
 	"os"
 	"path"
 	"strings"
+	"syscall"
 	"time"
 )
 
 var h = flag.String("header", "", "Header of the generated .go files")
 var hf = flag.String("headerfile", "", "Header of the generated .go files (from the content of the file)")
+var allowdestexists = flag.Bool("allowdestexists", false, "Do not fail if destination folder already exists")
 
 func usage() {
 	fmt.Fprintf(os.Stderr, "Usage: %s <source_pkg> <dest_folder>\n", os.Args[0])
@@ -53,7 +55,9 @@ func main() {
 	// Create dest directory
 	err = os.Mkdir(dest, 0777)
 	if err != nil {
-		log.Fatalf("Unable to create destination folder %s: %s", dest, err)
+		if perr, ok := err.(*os.PathError); !ok || perr.Err != syscall.EEXIST || !*allowdestexists {
+			log.Fatalf("Unable to create destination folder %s: %s", dest, err)
+		}
 	}
 
 	// Parse the list of .go source files
